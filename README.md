@@ -45,3 +45,8 @@ Use Ljung-Box to test residuals (residuals should be white-noise for reliable fo
 
 ![Forecast Results](https://github.com/pattaradanaisaelee/Thai-Agricultural-Export-Forecasting-Time-Series-Forecasting-in-R/blob/main/Images/sarima%20forecast.PNG?raw=true)
 
+# Conclusion
+
+Thai agricultural export value is trending and seasonal. ETS gave the most accurate point forecasts on the holdout but left autocorrelation in its residuals. SARIMA(0,1,4)(1,0,0)[12] was less accurate on the holdout but was the only model passing residual diagnostics, so it was selected to provide forecasts with defensible prediction intervals. The trade-off is validity of the intervals versus point accuracy.
+
+
