@@ -1,0 +1,211 @@
+---
+title: "Agriculture Export Forecasting"
+author: "Pattaradanai Saelee"
+date: "2026-10-12"
+output: html_document
+---
+
+### Thailand Agriculture Export Data
+
+
+## Library 
+
+```{r}
+
+library(ggplot2)
+library(ggfortify)
+library(fpp2)
+library(forecast)
+library(TSstudio)
+library(urca)
+library(tseries)
+
+```
+
+## Data
+
+
+```{r}
+
+data <- read.csv('AgriData.csv')
+
+export_data <- ts(data$Export,frequency = 12,start = c(2013,1))
+
+export_data
+
+```
+
+
+## Time Series Decomposition
+
+
+```{r}
+
+autoplot(export_data) + labs(title = "Thai agricultural export value", y = "Million baht", x = NULL)
+
+ggseasonplot(export_data,continuous = TRUE,polar = TRUE)
+
+ggsubseriesplot(export_data)
+
+ts_seasonal(export_data,type = "all")
+
+
+```
+## White noise?
+
+From Ljung-Box we can see that the data isn't white-noise so it has something to forecast.
+
+```{r}
+
+
+Box.test(export_data, lag = 24, type = "Ljung-Box")
+
+
+```
+
+
+## Stationarity (For ARIMA model)
+
+After one diff you can see that the time series is stationary so we can show that optimal params for ARIMA is d=1 and D=0
+
+```{r}
+
+#Unit Root Test
+
+export_data %>% diff() %>% ur.kpss() %>% summary() #KPSS
+
+export_data %>% diff() %>% adf.test() #ADF
+
+export_data %>% diff() %>% ggtsdisplay()
+
+nsdiffs(export_data)
+
+BoxCox.lambda(export_data)
+
+```
+## Train Test Split 
+
+We use data from **2013- 9/2022** to forecast to avoid unexpected growth in trend.
+
+```{r}
+
+n <- length(export_data)              
+n_train <- floor(0.8 * n)             
+
+train <- window(export_data, end = c(2022, 9))
+test  <- window(export_data, start = c(2022, 10))
+h <- length(test)                     
+
+length(train); length(test)                           
+
+```
+
+## Model Selection
+
+In this step we set Naive Forecasting Method to the baseline.
+
+
+```{r}
+
+fc_naive  <- naive(train, h = h)
+fc_snaive <- snaive(train, h = h)
+
+# ETS 
+fit_ets <- ets(train)
+fc_ets  <- forecast(fit_ets, h = h)
+
+# Holt-Winters, additive and multiplicative seasonality
+fc_hw_add  <- hw(train, h = h, seasonal = "additive")
+fc_hw_mult <- hw(train, h = h, seasonal = "multiplicative")
+
+# ARIMA and SARIMA,
+fit_arima  <- auto.arima(train, seasonal = FALSE, stepwise = FALSE, approximation = FALSE)
+fit_sarima <- auto.arima(train, seasonal = TRUE,  stepwise = FALSE, approximation = FALSE)
+fc_arima   <- forecast(fit_arima,  h = h)
+fc_sarima  <- forecast(fit_sarima, h = h)
+
+```
+
+
+
+# Residual Checks
+
+Since SARIMA is the only model that error is white-noise so we will use it for point and interval forecast.
+
+```{r}
+lb <- function(res, fitdf = 0) {
+  r <- Box.test(na.omit(res), lag = 24, type = "Ljung-Box", fitdf = fitdf)
+  c(Q = unname(r$statistic), p = r$p.value)
+}
+
+resids <- list(
+  Naive   = residuals(fc_naive),
+  SNaive  = residuals(fc_snaive),
+  ETS     = residuals(fit_ets),
+  HW_add  = residuals(fc_hw_add),
+  HW_mult = residuals(fc_hw_mult),
+  ARIMA   = residuals(fit_arima),
+  SARIMA  = residuals(fit_sarima)
+)
+fitdf <- c(Naive = 0, SNaive = 0, ETS = 0, HW_add = 0, HW_mult = 0,
+           ARIMA = length(coef(fit_arima)), SARIMA = length(coef(fit_sarima)))
+
+round(t(mapply(lb, resids, fitdf)), 4)
+
+checkresiduals(fit_ets, lag = 24)
+checkresiduals(fit_arima,lag = 24)
+checkresiduals(fit_sarima, lag = 24)
+```
+
+## Model Comparison
+
+```{r}
+metrics <- function(pred, actual, train) {
+  e <- as.numeric(actual) - as.numeric(pred)
+  c(RMSE = sqrt(mean(e^2)),
+    MAE  = mean(abs(e)),
+    MAPE = mean(abs(e / as.numeric(actual))) * 100)
+}
+
+preds <- list(Naive = fc_naive$mean, SNaive = fc_snaive$mean,
+              ETS = fc_ets$mean, HW_add = fc_hw_add$mean, HW_mult = fc_hw_mult$mean,
+              ARIMA = fc_arima$mean, SARIMA = fc_sarima$mean)
+
+res <- t(sapply(preds, metrics, actual = test, train = train))
+round(res[order(res[, "RMSE"]), ], 2)
+
+autoplot(window(export_data, start = 2020))+
+  autolayer(fc_snaive$mean,series = "SNaive")+
+  autolayer(fc_ets$mean,series = "ETS")+
+  autolayer(fc_hw_add$mean,series = "HW additive")+
+  autolayer(fc_sarima$mean,series = "SARIMA")+
+  autolayer(test,series = "Actual")
+
+```
+## Point and Interval Forecast
+
+```{r}
+# Check that the intervals behave on the holdout
+fc <- forecast(fit_sarima, h = h, level = c(80, 95))
+mean(test >= fc$lower[, 2] & test <= fc$upper[, 2])   
+mean(test >= fc$lower[, 1] & test <= fc$upper[, 1])   
+
+# Final model on all data, and the 12-month forecast
+fit_final <- auto.arima(export_data, stepwise = FALSE, approximation = FALSE)
+checkresiduals(fit_final, lag = 24)
+fc_final <- forecast(fit_final, h = 12, level = c(80, 95))
+fc_final
+autoplot(fc_final)
+```
+## Conclusion
+
+Thai agricultural export value is a non-stationary, seasonal series that needs one difference (d = 1) and no variance transformation. Of the seven models compared, **SARIMA(0,1,4)(1,0,0)[12]** is the final choice because it’s the only one with valid residuals, so it’s the only one whose prediction intervals you can defend.
+
+what we find in this project:
+
+1.ETS was best (RMSE 10,277, MAPE 5.88%), followed closely by Holt-Winters additive (10,500). Naive scored 13,648, and SARIMA scored 19,050, worse than both Naive and ETS.
+
+2.Residual diagnostics: only SARIMA passed the Ljung-Box test (p = 0.49). ETS and Holt-Winters failed because they miss the lag-4 and lag-12 dependence.
+
+3.Final model: SARIMA, chosen for statistical validity, with the forecast and its 80% and 95% intervals taken from that one model.
+
