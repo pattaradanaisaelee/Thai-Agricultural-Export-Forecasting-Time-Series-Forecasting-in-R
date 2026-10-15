@@ -3,7 +3,7 @@ Time series forecasting of monthly Thai agricultural export value (2013-2023) in
 
 # Metadata and Rcode
 
-![Metadata](images/forecast.png)
+![Metadata]([images/forecast.png](https://github.com/pattaradanaisaelee/Thai-Agricultural-Export-Forecasting-Time-Series-Forecasting-in-R/blob/ffbc19266d122275c34f2fa1a53e0b0ad9f7770d/Images/Metadata.PNG))
 Rcode is publish in RPubs : 
 
 
