@@ -3,6 +3,7 @@ Time series forecasting of monthly Thai agricultural export value (2013-2023) in
 
 # Metadata and Rcode
 
+![Metadata](images/forecast.png)
 Rcode is publish in RPubs : 
 
 
@@ -45,5 +46,5 @@ Use Ljung-Box to test residuals (residuals should be white-noise for reliable fo
 
 **SARIMA(0,1,4)(1,0,0)[12]**, chosen because it is the only model with valid residuals, so its 80% and 95% prediction intervals can be defended statistically.
 
-https://github.com/pattaradanaisaelee/Thai-Agricultural-Export-Forecasting-Time-Series-Forecasting-in-R/blob/main/Images/sarima%20forecast.PNG?raw=true
+![Forecast Results](images/forecast.png)
 
