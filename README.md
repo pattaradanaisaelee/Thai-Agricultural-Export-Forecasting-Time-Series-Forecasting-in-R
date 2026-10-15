@@ -23,3 +23,15 @@ Can monthly agricultural export value be forecast well enough to support plannin
 | ARIMA (non-seasonal)          | 15,852 | 13,567 |     9.57 |
 | SARIMA                        | 19,050 | 16,412 |    11.38 |
 | Holt-Winters (multiplicative) | 24,985 | 20,881 |    14.16 |
+
+# Residual Diagnostics
+Use Ljung-Box to test residuals (residuals should be white-noise for reliable forecast)
+
+| Model                         |             Q* |    p-value | Residuals are white noise?             |
+|-------------------------------|----------------:|-----------:|-----------------------------------------|
+| **SARIMA**                    |           18.54 | **0.4866** | **Yes**                                 |
+| ETS                           |           61.13 |   < 0.0001 | No                                      |
+| Holt-Winters (additive)       |           58.22 |     0.0001 | No                                      |
+| Holt-Winters (multiplicative) |           55.20 |     0.0003 | No                                      |
+| ARIMA (non-seasonal)          |           49.03 |     0.0002 | No                                      |
+| Naive / Seasonal Naive        | 139.84 / 280.85 |          ~0 | No (expected for baselines)             |
