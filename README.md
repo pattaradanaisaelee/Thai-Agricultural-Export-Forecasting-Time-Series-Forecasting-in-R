@@ -35,3 +35,11 @@ Use Ljung-Box to test residuals (residuals should be white-noise for reliable fo
 | Holt-Winters (multiplicative) |           55.20 |     0.0003 | No                                      |
 | ARIMA (non-seasonal)          |           49.03 |     0.0002 | No                                      |
 | Naive / Seasonal Naive        | 139.84 / 280.85 |          ~0 | No (expected for baselines)             |
+
+
+# Final model
+
+**SARIMA(0,1,4)(1,0,0)[12]**, chosen because it is the only model with valid residuals, so its 80% and 95% prediction intervals can be defended statistically.
+
+
+
